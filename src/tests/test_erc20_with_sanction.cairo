@@ -1,40 +1,33 @@
-// #[cfg(test)]
-// mod Test {
-//     // Starknet deps
-//     use starknet::ContractAddress;
-//     use starknet::deploy_syscall;
-//     use starknet::testing::set_contract_address;
+use openzeppelin::account::account::Account;
+use openzeppelin::token::erc20::ERC20::InternalImpl;
+use openzeppelin::token::erc20::ERC20;
 
-//     use openzeppelin::account::account::Account;
+    // Contracts
+use erc20_variations::token::erc20_with_sanction::ERC20WithSanction;
+use erc20_variations::token::erc20_with_sanction::ERC20WithSanction::ERC20Impl;
 
-//     // Contracts
-//     use erc20_variations::ERC20WithSanction;
+const NAME: felt252 = 'NAME';
+const SYMBOL: felt252 = 'SYMBOL';
 
-//     const NAME: felt252 = 'NAME';
-//     const SYMBOL: felt252 = 'SYMBOL';
 
-//     #[derive(Drop)]
-//     struct Signers {
-//         owner: ContractAddress,
-//         receiver: ContractAddress,
-//         new_receiver: ContractAddress,
-//     }
+//
+// Setup
+//
+fn STATE() -> ERC20WithSanction::ContractState {
+    ERC20WithSanction::contract_state_for_testing()
+}
 
-//     #[derive(Drop)]
-//     struct Contracts {
-//         preset: ContractAddress,
-//     }
+fn setup() -> ERC20WithSanction::ContractState {
+    let mut state = STATE();
+    ERC20WithSanction::constructor(ref state, NAME, SYMBOL);
+    state
+}
 
-//     fn deploy_account(public_key: felt252) -> ContractAddress {
-//         let mut calldata = array![public_key];
-//         let (address, _) = deploy_syscall(
-//             Account::TEST_CLASS_HASH.try_into().expect('Account declare failed'),
-//             0,
-//             calldata.span(),
-//             false
-//         )
-//             .expect('Account deploy failed');
-//         address
-//     }
+#[test]
+#[available_gas(2000000)]
+fn test_constructor() {
+    let mut state = STATE();
+    ERC20WithSanction::constructor(ref state, NAME, SYMBOL);
 
-// }
+    assert(ERC20Impl::name(@state) == NAME, 'Name should be NAME');
+}
