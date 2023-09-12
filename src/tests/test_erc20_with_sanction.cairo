@@ -6,10 +6,12 @@ use debug::PrintTrait;
 use serde::Serde;
 
 use openzeppelin::account::account::Account;
+use openzeppelin::access::accesscontrol::DEFAULT_ADMIN_ROLE;
 
 // Contracts
 use erc20_variations::token::erc20_with_sanction::ERC20WithSanction;
 use erc20_variations::token::erc20_with_sanction::ERC20WithSanction::ERC20Impl;
+use erc20_variations::token::erc20_with_sanction::ERC20WithSanction::Access_Control;
 
 const NAME: felt252 = 'NAME';
 const SYMBOL: felt252 = 'SYMBOL';
@@ -17,42 +19,25 @@ const SYMBOL: felt252 = 'SYMBOL';
 #[derive(Drop)]
 struct Signers {
     owner: ContractAddress,
-    receiver: ContractAddress,
+    user1: ContractAddress,
+    user2: ContractAddress,
 }
 
 //
 // Setup
 //
-
-
-// fn setup() -> ERC20WithSanction::ContractState {
-//     let mut state = STATE();
-//     ERC20WithSanction::constructor(ref state, NAME, SYMBOL);
-//     state
-// }
-
-fn deploy_account(public_key: felt252) -> ContractAddress {
-    let mut calldata = array![public_key];
-    let (address, _) = deploy_syscall(
-        Account::TEST_CLASS_HASH.try_into().expect('Account declare failed'),
-        0,
-        calldata.span(),
-        false
-    ).expect('Account deploy failed');
-    
-    address
-}
-
 fn STATE() -> ERC20WithSanction::ContractState {
     ERC20WithSanction::contract_state_for_testing()
 }
 
 fn setup() -> (Signers, ERC20WithSanction::ContractState) {
     let signers = Signers {
-        owner: deploy_account('OWNER'),
-        receiver: deploy_account('RECEIVER'),
+        owner: contract_address_const::<'OWNER'>(),
+        user1: contract_address_const::<'USER1'>(),
+        user2: contract_address_const::<'USER2'>(),
     };
     let mut state = STATE();
+    set_caller_address(signers.owner);
     ERC20WithSanction::constructor(ref state, NAME, SYMBOL, signers.owner);
     (signers, state)
 }
@@ -60,10 +45,9 @@ fn setup() -> (Signers, ERC20WithSanction::ContractState) {
 #[test]
 #[available_gas(2000000)]
 fn test_constructor() {
-    // let mut state = STATE();
-    // ERC20WithSanction::constructor(ref state, NAME, SYMBOL);
     let (signers, state) = setup();
 
     assert(ERC20Impl::name(@state) == NAME, 'Name should be NAME');
     assert(ERC20Impl::symbol(@state) == SYMBOL, 'Symbol should be SYMBOL');
+    assert(Access_Control::has_role(@state, DEFAULT_ADMIN_ROLE, signers.owner), 'should not have role');
 }
