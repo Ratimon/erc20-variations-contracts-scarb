@@ -51,3 +51,23 @@ fn test_constructor() {
     assert(ERC20Impl::symbol(@state) == SYMBOL, 'Symbol should be SYMBOL');
     assert(Access_Control::has_role(@state, DEFAULT_ADMIN_ROLE, signers.owner), 'should not have role');
 }
+
+#[test]
+#[available_gas(2000000)]
+fn test_grant_role() {
+    let (signers, mut state) = setup();
+    set_caller_address(signers.owner);
+    Access_Control::grant_role(ref state, DEFAULT_ADMIN_ROLE, signers.user1);
+   
+}
+
+
+#[test]
+#[available_gas(2000000)]
+#[should_panic(expected: ('Caller is missing role',))]
+fn test_grant_role_revert_when_role_unauthorized() {
+    let (signers, mut state) = setup();
+    set_caller_address(signers.user1);
+    Access_Control::grant_role(ref state, DEFAULT_ADMIN_ROLE, signers.user1);
+
+}

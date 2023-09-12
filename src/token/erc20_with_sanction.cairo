@@ -1,5 +1,3 @@
-
-
 #[starknet::contract]
 mod ERC20WithSanction {
 
