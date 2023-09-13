@@ -1,5 +1,6 @@
 mod token {
     mod erc20_with_sanction;
+    mod interface;
 }
 
 #[cfg(test)]

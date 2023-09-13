@@ -1,7 +1,8 @@
 #[starknet::contract]
 mod ERC20WithSanction {
 
-    use starknet::ContractAddress;
+    use starknet:: {ContractAddress, get_caller_address} ;
+    // use starknet::get_caller_address;
 
     use openzeppelin::token::erc20::interface::IERC20;
     use openzeppelin::token::erc20::erc20::ERC20;
@@ -9,6 +10,8 @@ mod ERC20WithSanction {
     use openzeppelin::access::accesscontrol::interface::IAccessControl;
     use openzeppelin::access::accesscontrol::accesscontrol::AccessControl;
     use openzeppelin::access::accesscontrol::DEFAULT_ADMIN_ROLE;
+
+    use erc20_variations::token::interface::IERC20WithSanction;
 
     #[storage]
     struct Storage {
@@ -27,6 +30,36 @@ mod ERC20WithSanction {
         let mut acess_control_self = AccessControl::unsafe_new_contract_state();
         AccessControl::InternalImpl::initializer(ref acess_control_self); 
         AccessControl::InternalImpl::_grant_role(ref acess_control_self, DEFAULT_ADMIN_ROLE, admin);
+    }
+
+    fn only_admin(self: @ContractState) {
+        let access_control_self = AccessControl::unsafe_new_contract_state();
+        let caller = get_caller_address();
+        assert ( AccessControl::AccessControlImpl::has_role(@access_control_self, DEFAULT_ADMIN_ROLE, caller ), 'ONLY_ADMIN');
+    }
+
+    #[external(v0)]
+    impl ERC20WithSanction of IERC20WithSanction<ContractState>{
+
+        fn mint(ref self: ContractState, to: ContractAddress, amount: u256) -> bool {
+            only_admin(@self);
+            let mut erc20_self = ERC20::unsafe_new_contract_state();
+            ERC20::InternalImpl::_mint(ref erc20_self, to, amount);
+            true
+        }
+
+        fn add_to_blacklist(ref self: ContractState, blacklist: ContractAddress) -> bool {
+            only_admin(@self);
+            self._is_blacklist.write(blacklist, true);
+            true
+        }
+
+        fn remove_from_blacklist(ref self: ContractState, blacklist: ContractAddress) -> bool {
+            only_admin(@self);
+            self._is_blacklist.write(blacklist, false);
+            true
+        }
+
     }
 
     #[external(v0)]
