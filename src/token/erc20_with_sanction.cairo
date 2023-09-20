@@ -2,7 +2,6 @@
 mod ERC20WithSanction {
 
     use starknet:: {ContractAddress, get_caller_address} ;
-    // use starknet::get_caller_address;
 
     use openzeppelin::token::erc20::interface::IERC20;
     use openzeppelin::token::erc20::erc20::ERC20;
@@ -35,11 +34,21 @@ mod ERC20WithSanction {
     fn only_admin(self: @ContractState) {
         let access_control_self = AccessControl::unsafe_new_contract_state();
         let caller = get_caller_address();
-        assert ( AccessControl::AccessControlImpl::has_role(@access_control_self, DEFAULT_ADMIN_ROLE, caller ), 'ONLY_ADMIN');
+        assert( AccessControl::AccessControlImpl::has_role(@access_control_self, DEFAULT_ADMIN_ROLE, caller ), 'ONLY_ADMIN');
+    }
+
+    fn only_not_blacklist(self: @ContractState) {
+        let caller = get_caller_address();
+        assert( !self._is_blacklist.read(caller), 'ON_BLACLKIST');
     }
 
     #[external(v0)]
-    impl ERC20WithSanction of IERC20WithSanction<ContractState>{
+    impl ERC20WithSanctionImpl of IERC20WithSanction<ContractState>{
+
+        #[view]
+        fn is_blacklist(self: @ContractState, address: ContractAddress) -> bool {
+            self._is_blacklist.read(address)
+        }
 
         fn mint(ref self: ContractState, to: ContractAddress, amount: u256) -> bool {
             only_admin(@self);
@@ -97,6 +106,7 @@ mod ERC20WithSanction {
         }
 
         fn transfer(ref self: ContractState, recipient: ContractAddress, amount: u256) -> bool {
+            only_not_blacklist(@self);
             let mut erc20_self = ERC20::unsafe_new_contract_state();
             ERC20::ERC20Impl::transfer(ref erc20_self, recipient, amount)
         }
@@ -107,6 +117,7 @@ mod ERC20WithSanction {
             recipient: ContractAddress,
             amount: u256
         ) -> bool {
+            only_not_blacklist(@self);
             let mut erc20_self = ERC20::unsafe_new_contract_state();
             ERC20::ERC20Impl::transfer_from(ref erc20_self, sender, recipient, amount)
         }
@@ -120,7 +131,7 @@ mod ERC20WithSanction {
     //
     // AccessControl
     //
-    impl Access_Control of IAccessControl<ContractState>{
+    impl Access_ControlImpl of IAccessControl<ContractState>{
 
         fn has_role(self: @ContractState, role: felt252, account: ContractAddress) -> bool {
             let access_control_self = AccessControl::unsafe_new_contract_state();
