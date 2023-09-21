@@ -31,15 +31,18 @@ mod ERC20WithSanction {
         AccessControl::InternalImpl::_grant_role(ref acess_control_self, DEFAULT_ADMIN_ROLE, admin);
     }
 
-    fn only_admin(self: @ContractState) {
-        let access_control_self = AccessControl::unsafe_new_contract_state();
-        let caller = get_caller_address();
-        assert( AccessControl::AccessControlImpl::has_role(@access_control_self, DEFAULT_ADMIN_ROLE, caller ), 'ONLY_ADMIN');
-    }
+    #[generate_trait]
+    impl ProtocolImpl of ProtocolTrait {
+        fn only_admin(self: @ContractState) {
+            let access_control_self = AccessControl::unsafe_new_contract_state();
+            let caller = get_caller_address();
+            assert( AccessControl::AccessControlImpl::has_role(@access_control_self, DEFAULT_ADMIN_ROLE, caller ), 'ONLY_ADMIN');
+        }
 
-    fn only_not_blacklist(self: @ContractState) {
-        let caller = get_caller_address();
-        assert( !self._is_blacklist.read(caller), 'ON_BLACLKIST');
+        fn only_not_blacklist(self: @ContractState) {
+            let caller = get_caller_address();
+            assert( !self._is_blacklist.read(caller), 'ON_BLACLKIST');
+        }
     }
 
     #[external(v0)]
@@ -51,20 +54,20 @@ mod ERC20WithSanction {
         }
 
         fn mint(ref self: ContractState, to: ContractAddress, amount: u256) -> bool {
-            only_admin(@self);
+            self.only_admin();
             let mut erc20_self = ERC20::unsafe_new_contract_state();
             ERC20::InternalImpl::_mint(ref erc20_self, to, amount);
             true
         }
 
         fn add_to_blacklist(ref self: ContractState, blacklist: ContractAddress) -> bool {
-            only_admin(@self);
+            self.only_admin();
             self._is_blacklist.write(blacklist, true);
             true
         }
 
         fn remove_from_blacklist(ref self: ContractState, blacklist: ContractAddress) -> bool {
-            only_admin(@self);
+            self.only_admin();
             self._is_blacklist.write(blacklist, false);
             true
         }
@@ -106,7 +109,7 @@ mod ERC20WithSanction {
         }
 
         fn transfer(ref self: ContractState, recipient: ContractAddress, amount: u256) -> bool {
-            only_not_blacklist(@self);
+            self.only_not_blacklist();
             let mut erc20_self = ERC20::unsafe_new_contract_state();
             ERC20::ERC20Impl::transfer(ref erc20_self, recipient, amount)
         }
@@ -117,7 +120,7 @@ mod ERC20WithSanction {
             recipient: ContractAddress,
             amount: u256
         ) -> bool {
-            only_not_blacklist(@self);
+            self.only_not_blacklist();
             let mut erc20_self = ERC20::unsafe_new_contract_state();
             ERC20::ERC20Impl::transfer_from(ref erc20_self, sender, recipient, amount)
         }

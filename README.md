@@ -105,7 +105,7 @@ Declare the contract to get the **class hash**, if it is already deployed, it ca
 make declare
 ```
 
-Use the resulting **class hash** and [Argument resolution](https://book.starkli.rs/argument-resolution) as parameters to deploy contract
+Use the resulting **class hash** and [Argument resolution](https://book.starkli.rs/argument-resolution) as parameters when deploying contract
 
 ```sh
 make deploy
